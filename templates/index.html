@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Home Finder Kenya</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" rel="stylesheet">
+    <style>
+        .hero-section {
+            background: linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)), url("{{ url_for('static', filename='images/hero-bg.jpg') }}");
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+        }
+        
+        .animate-slide-up {
+            animation: slideUp 0.6s ease-out;
+        }
+        
+        .animate-fade-in {
+            animation: fadeIn 0.8s ease-out;
+        }
+        
+        @keyframes slideUp {
+            from {
+                transform: translateY(20px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        .input-field {
+            transition: all 0.3s ease;
+        }
+        
+        .input-field:focus {
+            transform: scale(1.02);
+        }
+        
+        .nav-link {
+            position: relative;
+        }
+        
+        .nav-link::after {
+            content: '';
+            position: absolute;
+            width: 0;
+            height: 2px;
+            bottom: -2px;
+            left: 0;
+            background-color: #3B82F6;
+            transition: width 0.3s ease;
+        }
+        
+        .nav-link:hover::after {
+            width: 100%;
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <!-- Navigation -->
+    <nav class="bg-white shadow-lg fixed w-full z-50">
+        <div class="max-w-7xl mx-auto px-4">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center">
+                    <a href="/" class="text-xl font-bold text-blue-600">HomeFinder</a>
+                </div>
+                
+                <div class="hidden md:flex items-center space-x-8">
+                    <a href="/" class="nav-link text-gray-700 hover:text-blue-600">Home</a>
+                    <a href="/saved" class="nav-link text-gray-700 hover:text-blue-600">Saved Listings</a>
+                    <a href="/about" class="nav-link text-gray-700 hover:text-blue-600">About Us</a>
+                    <a href="/contact" class="nav-link text-gray-700 hover:text-blue-600">Contact</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="hero-section h-screen flex items-center justify-center text-white">
+        <div class="text-center animate-fade-in">
+            <h1 class="text-5xl font-bold mb-6">Find Your Perfect Home in Kenya</h1>
+            <p class="text-xl mb-8 max-w-2xl mx-auto">Let our AI-powered system match you with the perfect neighborhood based on your preferences and lifestyle.</p>
+            <a href="#search-form" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-8 rounded-full transition-all duration-300 transform hover:scale-105">
+                Get Started
+            </a>
+        </div>
+    </section>
+
+    <!-- Search Form Section -->
+    <section id="search-form" class="py-20 bg-white">
+        <div class="max-w-4xl mx-auto px-4">
+            <h2 class="text-3xl font-bold text-center mb-12">Find Your Ideal Location</h2>
+            <form method="POST" class="space-y-6 animate-slide-up">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label class="block text-gray-700 mb-2">Budget (KES)</label>
+                        <input type="number" name="budget" required
+                               class="input-field w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-400 focus:border-transparent">
+                    </div>
+                    <div>
+                        <label class="block text-gray-700 mb-2">Bedrooms</label>
+                        <input type="number" name="bedrooms" required
+                               class="input-field w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-400 focus:border-transparent">
+                    </div>
+                    <div>
+                        <label class="block text-gray-700 mb-2">Bathrooms</label>
+                        <input type="number" name="bathrooms" required
+                               class="input-field w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-400 focus:border-transparent">
+                    </div>
+                    <div>
+                        <label class="block text-gray-700 mb-2">Square Meters</label>
+                        <input type="number" name="sq_mtrs" required
+                               class="input-field w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-400 focus:border-transparent">
+                    </div>
+                </div>
+                <div class="text-center">
+                    <button type="submit" 
+                            class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-8 rounded-full transition-all duration-300 transform hover:scale-105">
+                        Find Recommendations
+                    </button>
+                </div>
+            </form>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section class="py-20 bg-gray-50">
+        <div class="max-w-7xl mx-auto px-4">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-12">
+                <div class="text-center animate-slide-up">
+                    <div class="bg-white p-6 rounded-lg shadow-lg">
+                        <h3 class="text-xl font-bold mb-4">AI-Powered Matching</h3>
+                        <p class="text-gray-600">Our advanced AI algorithms analyze multiple factors to find your perfect match.</p>
+                    </div>
+                </div>
+                <div class="text-center animate-slide-up">
+                    <div class="bg-white p-6 rounded-lg shadow-lg">
+                        <h3 class="text-xl font-bold mb-4">Local Insights</h3>
+                        <p class="text-gray-600">Get detailed information about amenities, schools, and neighborhood news.</p>
+                    </div>
+                </div>
+                <div class="text-center animate-slide-up">
+                    <div class="bg-white p-6 rounded-lg shadow-lg">
+                        <h3 class="text-xl font-bold mb-4">Smart Recommendations</h3>
+                        <p class="text-gray-600">Receive personalized property recommendations based on your preferences.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="bg-gray-800 text-white py-12">
+        <div class="max-w-7xl mx-auto px-4">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+                <div>
+                    <h4 class="text-xl font-bold mb-4">HomeFinder</h4>
+                    <p class="text-gray-400">Your trusted partner in finding the perfect home in Kenya.</p>
+                </div>
+                <div>
+                    <h4 class="text-xl font-bold mb-4">Quick Links</h4>
+                    <ul class="space-y-2">
+                        <li><a href="/" class="text-gray-400 hover:text-white">Home</a></li>
+                        <li><a href="/about" class="text-gray-400 hover:text-white">About Us</a></li>
+                        <li><a href="/contact" class="text-gray-400 hover:text-white">Contact</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="text-xl font-bold mb-4">Contact Us</h4>
+                    <ul class="space-y-2 text-gray-400">
+                        <li>123 Business Avenue</li>
+                        <li>Nairobi, Kenya</li>
+                        <li>Phone: +254 123 456 789</li>
+                        <li>Email: info@homefinder.ke</li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="text-xl font-bold mb-4">Office Hours</h4>
+                    <ul class="space-y-2 text-gray-400">
+                        <li>Monday - Friday: 9:00 AM - 6:00 PM</li>
+                        <li>Saturday: 10:00 AM - 4:00 PM</li>
+                        <li>Sunday: Closed</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="border-t border-gray-700 mt-8 pt-8 text-center text-gray-400">
+                <p>&copy; 2024 HomeFinder. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Smooth scroll for anchor links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                document.querySelector(this.getAttribute('href')).scrollIntoView({
+                    behavior: 'smooth'
+                });
+            });
+        });
+
+        // Animate elements on scroll
+        const observerOptions = {
+            threshold: 0.1
+        };
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('animate-slide-up');
+                }
+            });
+        }, observerOptions);
+
+        document.querySelectorAll('.animate-slide-up').forEach((element) => {
+            observer.observe(element);
+        });
+    </script>
+</body>
+</html>
