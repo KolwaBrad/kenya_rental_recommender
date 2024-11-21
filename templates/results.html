@@ -134,7 +134,22 @@
                         <div class="mb-6">
                             <h4 class="text-lg font-semibold mb-3">Recent Neighborhood News</h4>
                             <div class="prose max-w-none text-gray-600 bg-gray-50 p-4 rounded-lg">
-                                {{ property.news }}
+                                {% if property.news %}
+                                    <ul class="space-y-2">
+                                        {% for news_item in property.news %}
+                                            <li class="border-b border-gray-200 pb-2 last:border-b-0 last:pb-0">
+                                                <a href="{{ news_item.link }}" 
+                                                   target="_blank" 
+                                                   class="text-blue-600 hover:underline block mb-1">
+                                                    {{ news_item.title }}
+                                                </a>
+                                                <p class="text-sm text-gray-500">{{ news_item.date }}</p>
+                                            </li>
+                                        {% endfor %}
+                                    </ul>
+                                {% else %}
+                                    <p class="text-gray-500 italic">No recent news available for this neighborhood.</p>
+                                {% endif %}
                             </div>
                         </div>
 
