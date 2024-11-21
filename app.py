@@ -45,7 +45,7 @@ def get_location_coordinates(address, neighborhood):
         print(f"Error getting coordinates: {e}")
         return None
 
-def search_nearby_places(location, place_type, radius=2000, max_results=3):
+def search_nearby_places(location, place_type, radius=2000, max_results=2):
     """Search for nearby places of a specific type"""
     try:
         places_result = gmaps.places_nearby(
