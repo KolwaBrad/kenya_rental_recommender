@@ -101,7 +101,7 @@ def get_amenities_info(neighborhood, address):
         amenities_text += "\n"
     
     # Use Ollama to create a natural description
-    prompt = f"""In not more than 200 words express this amenities information into a natural, flowing paragraph that a real estate agent might use- NOTE- (only respond with the agent's part not your own intro e.g "Here's a natural-sounding paragraph that a real estate agent might use to highlight the amenities near the property:" no):
+    prompt = f""""structure the following information:
 
 {amenities_text}
 
