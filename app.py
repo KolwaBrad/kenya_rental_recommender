@@ -121,7 +121,7 @@ def generate_ai_recommendations(properties):
     """
     try:
         # Prepare the prompt with detailed information about each property
-        prompt = "Based on the following 5 neighborhoods in Kenya, recommend the top 2 best options. Consider factors like amenities, recent news, and property features. Provide detailed reasoning for each recommendation.\n\n"
+        prompt = "Based on the following 5 neighborhoods in Kenya, recommend the top 2 best options. Consider factors like amenities, recent news, and property features. Provide detailed reasoning for each recommendation. Your respnose should be one flowing paragraph not (exceding 80 words).\n\n"
         
         for idx, prop in enumerate(properties, 1):
             prompt += f"\nProperty {idx} - {prop['Neighborhood']}:\n"
