@@ -126,8 +126,21 @@
 
                         <div class="mb-6">
                             <h4 class="text-lg font-semibold mb-3">Nearby Amenities</h4>
-                            <div class="prose max-w-none text-gray-600">
-                                {{ property.amenities }}
+                            <div class="amenities-section">
+                                {% for category, places in property.amenities.items() %}
+                                <div class="amenity-category">
+                                    <div class="amenity-heading">• {{ category }}</div>
+                                    {% if places %}
+                                    <ul class="amenity-list">
+                                        {% for place in places %}
+                                        <li class="amenity-item">{{ loop.index }}. {{ place.name }} (Rating: {{ place.rating }})</li>
+                                        {% endfor %}
+                                    </ul>
+                                    {% else %}
+                                    <div class="no-amenities">No nearby places found</div>
+                                    {% endif %}
+                                </div>
+                                {% endfor %}
                             </div>
                         </div>
 
@@ -172,6 +185,22 @@
                 Back to Search
             </a>
         </div>
+
+        <!-- Updated results.html - Add button at the end of main section -->
+<div class="text-center mt-12 space-y-4">
+    <a href="{{ url_for('ai_recommendations', properties=properties) }}" 
+       class="inline-flex items-center bg-green-600 text-white px-8 py-3 rounded-lg hover:bg-green-700 transition-colors">
+        Get AI-Powered Recommendations
+    </a>
+    <br>
+    <a href="/" class="inline-flex items-center text-blue-600 hover:text-blue-800">
+        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+        </svg>
+        Back to Search
+    </a>
+</div>
+
     </main>
 
     <!-- Footer -->
