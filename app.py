@@ -1,39 +1,39 @@
-from flask import Flask, render_template, request
+from flask import Flask, render_template, request, redirect, url_for, session, jsonify
 from markupsafe import Markup
 from src.data_preprocessing import prepare_data
 from src.model import train_model, find_optimal_clusters
 from src.recommender import recommend_neighborhood
 from src.utils import prepare_results
-import ollama
 import requests
 import feedparser
 from urllib.parse import quote
 import time
 import googlemaps
+import google.generativeai as genai
 import os
+import json
 from dotenv import load_dotenv
+from flask_session import Session
 
-# Load environment variables
 load_dotenv()
 
 app = Flask(__name__)
+app.secret_key = os.getenv('FLASK_SECRET_KEY', 'your-secret-key-here')
 
-# Initialize Google Maps client
+# Configure server-side session
+app.config['SESSION_TYPE'] = 'filesystem'  # Store session data in the filesystem
+Session(app)
+
 gmaps = googlemaps.Client(key=os.getenv('GOOGLE_MAPS_API_KEY'))
+genai.configure(api_key=os.getenv('GOOGLE_GEMINI_API_KEY'))
+model_gemini = genai.GenerativeModel('gemini-pro')
 
-# Load and preprocess data
 df, X, scaler, imputer = prepare_data('data/kenya_rentals.csv')
-
-# Find optimal number of clusters
 optimal_clusters = find_optimal_clusters(X)
-
-# Train the model
 model = train_model(X, n_clusters=optimal_clusters)
 
 def get_location_coordinates(address, neighborhood):
-    """Get latitude and longitude for a given address"""
     try:
-        # Append neighborhood and Kenya for more accurate results
         full_address = f"{address}, {neighborhood}, Kenya"
         geocode_result = gmaps.geocode(full_address)
         
@@ -46,7 +46,6 @@ def get_location_coordinates(address, neighborhood):
         return None
 
 def search_nearby_places(location, place_type, radius=2000, max_results=2):
-    """Search for nearby places of a specific type"""
     try:
         places_result = gmaps.places_nearby(
             location=location,
@@ -59,9 +58,7 @@ def search_nearby_places(location, place_type, radius=2000, max_results=2):
             for place in places_result['results'][:max_results]:
                 place_details = {
                     'name': place.get('name'),
-                    'address': place.get('vicinity'),
                     'rating': place.get('rating', 'N/A'),
-                    'distance': radius  # You might want to calculate actual distance
                 }
                 places.append(place_details)
         
@@ -71,50 +68,26 @@ def search_nearby_places(location, place_type, radius=2000, max_results=2):
         return []
 
 def get_amenities_info(neighborhood, address):
-    """Get amenities information using Google Maps API and format with Ollama"""
-    # Define amenity types to search for
     amenity_types = {
-        'schools': 'school',
-        'hospitals': 'hospital',
-        'restaurants': 'restaurant',
-        'supermarkets': 'supermarket',
-        'banks': 'bank'
+        'Schools': 'school',
+        'Hospitals': 'hospital',
+        'Restaurants': 'restaurant',
+        'Supermarkets': 'supermarket',
+        'Banks': 'bank'
     }
     
-    # Get coordinates for the location
     coordinates = get_location_coordinates(address, neighborhood)
     if not coordinates:
         return "Unable to find location coordinates."
     
-    # Collect amenities information
-    amenities_data = {}
-    for amenity_name, amenity_type in amenity_types.items():
+    amenities_dict = {}
+    for category_name, amenity_type in amenity_types.items():
         places = search_nearby_places(coordinates, amenity_type)
-        amenities_data[amenity_name] = places
+        amenities_dict[category_name] = places
     
-    # Create a structured text of amenities for Ollama
-    amenities_text = f"Here are the amenities near {address} in {neighborhood}:\n\n"
-    for amenity_type, places in amenities_data.items():
-        amenities_text += f"{amenity_type.title()}:\n"
-        for place in places:
-            amenities_text += f"- {place['name']} (Rating: {place['rating']})\n"
-        amenities_text += "\n"
-    
-    # Use Ollama to create a natural description
-    prompt = f""""structure the following information:
-
-{amenities_text}
-
-Focus on highlighting the convenience and accessibility of the location."""
-
-    response = ollama.chat(model='tinyllama', messages=[
-        {'role': 'user', 'content': prompt},
-    ])
-    
-    return response['message']['content']
+    return amenities_dict
 
 def get_neighborhood_news(neighborhood, num_news=2):
-    """Get recent news about neighborhood using Google News RSS"""
     try:
         encoded_query = quote(f"{neighborhood} Kenya news")
         url = f"https://news.google.com/rss/search?q={encoded_query}&hl=en-US&gl=US&ceid=US:en"
@@ -142,6 +115,52 @@ def get_neighborhood_news(neighborhood, num_news=2):
         print(f"Error fetching news: {e}")
         return []
 
+def generate_ai_recommendations(properties):
+    """
+    Generate AI recommendations using Google's Gemini API based on property data
+    """
+    try:
+        # Prepare the prompt with detailed information about each property
+        prompt = "Based on the following 5 neighborhoods in Kenya, recommend the top 2 best options. Consider factors like amenities, recent news, and property features. Provide detailed reasoning for each recommendation.\n\n"
+        
+        for idx, prop in enumerate(properties, 1):
+            prompt += f"\nProperty {idx} - {prop['Neighborhood']}:\n"
+            prompt += f"Price: KSh {prop['Price']}\n"
+            prompt += f"Specs: {prop['Bedrooms']} bedrooms, {prop['Bathrooms']} bathrooms, {prop['sq_mtrs']} sq meters\n"
+            
+            # Add amenities information
+            prompt += "Nearby Amenities:\n"
+            for category, places in prop['amenities'].items():
+                if places:
+                    prompt += f"- {category}: {', '.join(f'{place['name']} (Rating: {place['rating']})' for place in places)}\n"
+            
+            # Add recent news
+            if prop['news']:
+                prompt += "Recent News:\n"
+                for news in prop['news']:
+                    prompt += f"- {news['title']}\n"
+
+        # Get recommendation from Gemini
+        response = model_gemini.generate_content(prompt)
+        
+        # Filter properties to only include the recommended ones
+        recommended_neighborhoods = []
+        for prop in properties:
+            if prop['Neighborhood'] in response.text:
+                recommended_neighborhoods.append(prop)
+
+        return {
+            'success': True,
+            'recommendations': response.text,
+            'properties': recommended_neighborhoods[:2]  # Ensure we only get top 2
+        }
+    except Exception as e:
+        print(f"Error generating AI recommendations: {e}")
+        return {
+            'success': False,
+            'error': str(e)
+        }
+
 @app.route('/', methods=['GET', 'POST'])
 def index():
     if request.method == 'POST':
@@ -158,16 +177,16 @@ def index():
         
         formatted_properties = prepare_results(recommended_properties)
         
-        # Fetch additional information for each property
         for property in formatted_properties:
             property['amenities'] = get_amenities_info(
                 property['Neighborhood'], 
-                property.get('Address', f"{property['Neighborhood']}, Nairobi")  # Fallback address
+                property.get('Address', f"{property['Neighborhood']}, Nairobi")
             )
             property['news'] = get_neighborhood_news(property['Neighborhood'])
-            
-            # Add a small delay to prevent overwhelming external services
             time.sleep(1)
+        
+        # Store the properties in session
+        session['properties'] = formatted_properties
         
         return render_template(
             'results.html',
@@ -176,6 +195,42 @@ def index():
         )
     
     return render_template('index.html')
+
+@app.route('/ai-recommendations')
+def ai_recommendations():
+    try:
+        # Get properties from session
+        properties = session.get('properties')
+        
+        if not properties:
+            return redirect(url_for('index'))
+        
+        # Generate AI recommendations
+        ai_results = generate_ai_recommendations(properties)
+        
+        if not ai_results['success']:
+            return render_template(
+                'ai_recommendations.html',
+                error=ai_results.get('error'),
+                recommendations=None,
+                recommended_properties=[]
+            )
+        
+        return render_template(
+            'ai_recommendations.html',
+            recommendations=ai_results['recommendations'],
+            recommended_properties=ai_results['properties'],
+            error=None
+        )
+        
+    except Exception as e:
+        print(f"Error in ai_recommendations route: {e}")
+        return render_template(
+            'ai_recommendations.html',
+            error="An unexpected error occurred. Please try again.",
+            recommendations=None,
+            recommended_properties=[]
+        )
 
 if __name__ == '__main__':
     app.run(debug=True)
