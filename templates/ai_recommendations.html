@@ -6,6 +6,7 @@
     <title>HomeFinder - AI Recommendations</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet">
     <style>
         .animate-slide-up {
             animation: slideUp 0.6s ease-out;
@@ -58,6 +59,77 @@
 
         .amenity-tag {
             animation: fadeIn 0.5s ease-out;
+        }
+        .amenities-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin-top: 1rem;
+        }
+        
+        .amenity-category {
+            background: #f8fafc;
+            border-radius: 0.5rem;
+            padding: 1.25rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            transition: transform 0.2s ease;
+        }
+        
+        .amenity-category:hover {
+            transform: translateY(-2px);
+        }
+        
+        .amenity-heading {
+            display: flex;
+            align-items: center;
+            font-weight: 600;
+            font-size: 1.1rem;
+            color: #1e40af;
+            margin-bottom: 1rem;
+            border-bottom: 2px solid #e2e8f0;
+            padding-bottom: 0.5rem;
+        }
+        
+        .amenity-heading i {
+            margin-right: 0.5rem;
+        }
+        
+        .amenity-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        
+        .amenity-item {
+            display: flex;
+            align-items: center;
+            padding: 0.5rem 0;
+            border-bottom: 1px solid #e2e8f0;
+            color: #4b5563;
+        }
+        
+        .amenity-item:last-child {
+            border-bottom: none;
+        }
+        
+        .amenity-item i {
+            margin-right: 0.5rem;
+            color: #6b7280;
+        }
+        
+        .amenity-rating {
+            margin-left: auto;
+            background: #dbeafe;
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.875rem;
+            color: #1e40af;
+        }
+        
+        .no-amenities {
+            color: #6b7280;
+            font-style: italic;
+            padding: 0.5rem 0;
         }
     </style>
 </head>
@@ -128,14 +200,27 @@
 
                         <div class="mb-6">
                             <h4 class="text-lg font-semibold mb-3">Nearby Amenities</h4>
-                            <div class="amenities-section">
-                                {% for category, places in property.amenities.items() %}
+                            <div class="amenities-grid">
+                                {% for category, data in property.amenities.items() %}
                                 <div class="amenity-category">
-                                    <div class="amenity-heading">• {{ category }}</div>
-                                    {% if places %}
+                                    <div class="amenity-heading">
+                                        <i class="{{ data.icon_class }}"></i>
+                                        {{ category }}
+                                    </div>
+                                    {% if data.places %}
                                     <ul class="amenity-list">
-                                        {% for place in places %}
-                                        <li class="amenity-item">{{ loop.index }}. {{ place.name }} (Rating: {{ place.rating }})</li>
+                                        {% for place in data.places %}
+                                        <li class="amenity-item">
+                                            <i class="{{ place.icon_class }}"></i>
+                                            <span>{{ place.name }}</span>
+                                            <span class="amenity-rating">
+                                                {% if place.rating != 'N/A' %}
+                                                    {{ place.rating }} ★
+                                                {% else %}
+                                                    No rating
+                                                {% endif %}
+                                            </span>
+                                        </li>
                                         {% endfor %}
                                     </ul>
                                     {% else %}
