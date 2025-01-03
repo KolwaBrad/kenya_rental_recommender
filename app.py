@@ -3,7 +3,7 @@ from markupsafe import Markup
 from src.data_preprocessing import prepare_data
 from src.model import train_model, find_optimal_clusters
 from src.recommender import recommend_neighborhood
-from src.utils import prepare_results
+from src.utils import prepare_results, format_gemini_response, clean_property_description
 import requests
 import feedparser
 from urllib.parse import quote
@@ -21,7 +21,7 @@ app = Flask(__name__)
 app.secret_key = os.getenv('FLASK_SECRET_KEY', 'your-secret-key-here')
 
 # Configure server-side session
-app.config['SESSION_TYPE'] = 'filesystem'  # Store session data in the filesystem
+app.config['SESSION_TYPE'] = 'filesystem'
 Session(app)
 
 gmaps = googlemaps.Client(key=os.getenv('GOOGLE_MAPS_API_KEY'))
@@ -120,8 +120,8 @@ def generate_ai_recommendations(properties):
     Generate AI recommendations using Google's Gemini API based on property data
     """
     try:
-        # Prepare the prompt with detailed information about each property
-        prompt = "Based on the following 5 neighborhoods in Kenya, recommend the top 2 best options. Consider factors like amenities, recent news, and property features. Provide detailed reasoning for each recommendation. Your respnose should be one flowing paragraph not (exceding 80 words).\n\n"
+        # Prepare the prompt
+        prompt = "Based on the following neighborhoods in Kenya, recommend the top 2 best options. Consider factors like amenities, recent news, and property features. Provide detailed reasoning for each recommendation. Your response should be well-formatted with clear paragraphs and proper spacing.\n\n"
         
         for idx, prop in enumerate(properties, 1):
             prompt += f"\nProperty {idx} - {prop['Neighborhood']}:\n"
@@ -139,20 +139,32 @@ def generate_ai_recommendations(properties):
                 prompt += "Recent News:\n"
                 for news in prop['news']:
                     prompt += f"- {news['title']}\n"
+            
+            prompt += "\n"
 
         # Get recommendation from Gemini
         response = model_gemini.generate_content(prompt)
         
-        # Filter properties to only include the recommended ones
+        # Format the response
+        formatted_recommendations = format_gemini_response(response.text)
+        
+        # Filter and format properties
         recommended_neighborhoods = []
         for prop in properties:
             if prop['Neighborhood'] in response.text:
+                # Create a description for the property
+                prop_description = (
+                    f"**Location Details**: {prop['Neighborhood']}\n\n"
+                    f"**Property Features**: {prop['Bedrooms']} bedrooms, "
+                    f"{prop['Bathrooms']} bathrooms, {prop['sq_mtrs']} square meters\n\n"
+                )
+                prop['description'] = clean_property_description(prop_description)
                 recommended_neighborhoods.append(prop)
 
         return {
             'success': True,
-            'recommendations': response.text,
-            'properties': recommended_neighborhoods[:2]  # Ensure we only get top 2
+            'recommendations': formatted_recommendations,
+            'properties': recommended_neighborhoods[:2]
         }
     except Exception as e:
         print(f"Error generating AI recommendations: {e}")
@@ -185,7 +197,6 @@ def index():
             property['news'] = get_neighborhood_news(property['Neighborhood'])
             time.sleep(1)
         
-        # Store the properties in session
         session['properties'] = formatted_properties
         
         return render_template(
@@ -199,13 +210,11 @@ def index():
 @app.route('/ai-recommendations')
 def ai_recommendations():
     try:
-        # Get properties from session
         properties = session.get('properties')
         
         if not properties:
             return redirect(url_for('index'))
         
-        # Generate AI recommendations
         ai_results = generate_ai_recommendations(properties)
         
         if not ai_results['success']:
