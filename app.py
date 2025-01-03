@@ -59,6 +59,7 @@ def search_nearby_places(location, place_type, radius=2000, max_results=2):
                 place_details = {
                     'name': place.get('name'),
                     'rating': place.get('rating', 'N/A'),
+                    'icon_class': get_amenity_icon_class(place_type)  # New function for icons
                 }
                 places.append(place_details)
         
@@ -66,6 +67,17 @@ def search_nearby_places(location, place_type, radius=2000, max_results=2):
     except Exception as e:
         print(f"Error searching nearby places: {e}")
         return []
+
+def get_amenity_icon_class(place_type):
+    """Return appropriate icon class based on place type"""
+    icon_mapping = {
+        'school': 'fas fa-school',
+        'hospital': 'fas fa-hospital',
+        'restaurant': 'fas fa-utensils',
+        'supermarket': 'fas fa-shopping-cart',
+        'bank': 'fas fa-university'
+    }
+    return icon_mapping.get(place_type, 'fas fa-map-marker')
 
 def get_amenities_info(neighborhood, address):
     amenity_types = {
@@ -83,9 +95,16 @@ def get_amenities_info(neighborhood, address):
     amenities_dict = {}
     for category_name, amenity_type in amenity_types.items():
         places = search_nearby_places(coordinates, amenity_type)
-        amenities_dict[category_name] = places
+        # Add category metadata
+        amenities_dict[category_name] = {
+            'places': places,
+            'icon_class': f"fas fa-{amenity_type}",
+            'category_id': amenity_type.lower().replace(' ', '-')
+        }
     
     return amenities_dict
+
+# Rest of the code remains the same...
 
 def get_neighborhood_news(neighborhood, num_news=2):
     try:
@@ -125,18 +144,24 @@ def generate_ai_recommendations(properties):
         
         for idx, prop in enumerate(properties, 1):
             prompt += f"\nProperty {idx} - {prop['Neighborhood']}:\n"
-            prompt += f"Price: KSh {prop['Price']}\n"
+            prompt += f"Price: {prop['Price']}\n"
             prompt += f"Specs: {prop['Bedrooms']} bedrooms, {prop['Bathrooms']} bathrooms, {prop['sq_mtrs']} sq meters\n"
             
             # Add amenities information
             prompt += "Nearby Amenities:\n"
-            for category, places in prop['amenities'].items():
-                if places:
-                    prompt += f"- {category}: {', '.join(f'{place['name']} (Rating: {place['rating']})' for place in places)}\n"
+            if isinstance(prop['amenities'], dict):
+                for category, data in prop['amenities'].items():
+                    prompt += f"- {category}:"
+                    if isinstance(data, dict) and 'places' in data:
+                        places = data['places']
+                        if places:
+                            for place in places:
+                                prompt += f"\n  * {place['name']} (Rating: {place['rating']})"
+                    prompt += "\n"
             
             # Add recent news
             if prop['news']:
-                prompt += "Recent News:\n"
+                prompt += "\nRecent News:\n"
                 for news in prop['news']:
                     prompt += f"- {news['title']}\n"
             
@@ -151,20 +176,13 @@ def generate_ai_recommendations(properties):
         # Filter and format properties
         recommended_neighborhoods = []
         for prop in properties:
-            if prop['Neighborhood'] in response.text:
-                # Create a description for the property
-                prop_description = (
-                    f"**Location Details**: {prop['Neighborhood']}\n\n"
-                    f"**Property Features**: {prop['Bedrooms']} bedrooms, "
-                    f"{prop['Bathrooms']} bathrooms, {prop['sq_mtrs']} square meters\n\n"
-                )
-                prop['description'] = clean_property_description(prop_description)
+            if prop['Neighborhood'].lower() in response.text.lower():
                 recommended_neighborhoods.append(prop)
 
         return {
             'success': True,
             'recommendations': formatted_recommendations,
-            'properties': recommended_neighborhoods[:2]
+            'properties': recommended_neighborhoods[:2]  # Limit to top 2 recommendations
         }
     except Exception as e:
         print(f"Error generating AI recommendations: {e}")
